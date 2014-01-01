@@ -1,0 +1,8 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+lib/Visio/XML.pm
+t/000-element.t
+t/010-fileop.t
+t/020-attr.t

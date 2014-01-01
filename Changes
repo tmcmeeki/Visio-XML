@@ -1,0 +1,6 @@
+Revision history for Perl extension Visio::XML.
+
+0.01  Sat Sep 21 15:03:03 2013
+	- original version; created by h2xs 1.23 with options
+		-AX --skip-exporter --use-new-tests -n Visio::XML
+
