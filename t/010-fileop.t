@@ -55,7 +55,7 @@ unlink($fn_out);
 #my $root = $doc1->createElement("xxx");
 #$doc1->setDocumentElement($root);
 #$vx2->root($root);
-my $found = $vx1->find_or_create($vx1->root, "sec2");
+$found = $vx1->find_or_create($vx1->root, "sec2");
 $vx1->set_property("sec2", "fu", "bar");
 $g_log->debug($vx1->doc->toString);
 

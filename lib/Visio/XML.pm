@@ -113,6 +113,87 @@ sub new {
 }
 
 
+sub query {
+	my $self = shift;
+	my $node_name = shift;
+	my $start_node = shift;	# node at which to start search
+	my $xpath = shift; # relative XPath below start_node (optional)
+	my $where_clause = shift;	# see below
+	my $ar_return = shift;	# see below
+
+#	the return value is a list of hashes of XML nodes, as follows:
+#		node_addr1 => ( 
+#			'address' => node address (see XML::LibXML::Node),
+#			'name' => nodeName (see XML::LibXML::Node),
+#			),
+#		node_addr2 => ( 
+#			'address' => node address (see XML::LibXML::Node),
+#			'name' => nodeName (see XML::LibXML::Node),
+#			)
+#		);
+#	ar_return is a list of attributes that you want returned, in
+#	addition to those above, e.g. if $ar_return is ('attr1', 'attr2'),
+#		node_addr1 => ( 
+#			'address' => as above,
+#			'name' => as above,
+#			'attr1' => 'value1',
+#			'attr2' => 'value2'
+#			), ...
+#	where_clause is additional matching criteria based on attribute,
+#	expressed as attr=value, e.g. 'ID=3'.
+
+	my $xp = (defined $xpath) ? $xpath : "";
+	$xp .= 'node()';
+	my $matched = 0;
+	my @result;
+
+	$self->_log->debug(sprintf "search from [%s] XPath [$xp] for [$node_name]", $start_node->getName);
+
+	for my $node ($start_node->findnodes($xp)) {
+
+		# name match
+		next unless ($node->getName eq $node_name);
+
+		# where match (attribute)
+		if (defined $where_clause && $where_clause =~ /=/) {
+			my ($a,$b) = split(/=/, $where_clause);
+
+			if (defined $a && defined $b && $node->hasAttribute($a)) {
+
+				next unless ($node->getAttribute($a) eq $b);
+			}
+		}
+
+		$matched++;
+
+		my $result = { 'name' => $node_name, 'address' => $node };
+
+		# augment query result
+
+		if (defined $ar_return) {
+
+			$self->_log->debug(sprintf "augmenting results [%s]", Dumper($ar_return));
+
+			for my $attr (@$ar_return) {
+
+				if (defined $node->getAttribute($attr)) {
+
+					$result->{$attr} = $node->getAttribute($attr);
+				} else {
+					$result->{$attr} = undef;
+				}
+			}
+		}
+
+		push @result, ( $result );
+		$result = ();
+	}
+	$self->_log->debug(sprintf "matched [%d] result [%s]", $matched, Dumper(\@result));
+
+	return \@result;
+}
+
+
 sub find {
 	my $self = shift;
 	my $parent = shift;
@@ -138,6 +219,7 @@ sub find {
 			$node = $_;
 			$xcount++;
 
+			# audit the max id for the node (if it exists).
 			if (defined $node->getAttribute($aname)) {
 				$id = $node->getAttribute($aname)
 					if ($node->getAttribute($aname) > $id);
@@ -205,7 +287,6 @@ sub prepare {
 	# ... and then reset it back to the core namespace!
 	$root->setNamespace(URI_VISIO_CORE, "");
 #	my $root = XML::LibXML::Element->new($name);
-
 
 	$doc->setDocumentElement($root);
 	$doc->setEncoding(XML_ENCODING);
